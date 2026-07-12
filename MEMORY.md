@@ -190,6 +190,25 @@ Qué existe hoy:
   `https://cotizador.sentidocomun.click` a `GOTRUE_URI_ALLOW_LIST` cuando usemos
   flujos de email en fases futuras.
 
+## Diseño UI (desde 2026-07-12)
+- **Directrices completas en `docs/diseno-ui.md`** — leer SIEMPRE antes de construir
+  cualquier pantalla. Concepto: "la hoja de presupuesto viva" (formulario + hoja que
+  se escribe sola; total resaltado con trazo fosforito animado = firma visual).
+- Tokens: papel `#F7F6F2`, tinta `#10222E`, plano `#17527B` (= variable de tenant),
+  fosforito `#FFE45C`, grafito `#5D6B72`, línea `#D8DCD4`. Tipografía: Archivo
+  (display + UI, fundidora argentina) + Spline Sans Mono para TODOS los números
+  (tabular-nums). En Next se cargan con `next/font`.
+- Mockup interactivo aprobable (artifact): selector de 6 rubros con hoja viva,
+  count-up del total, theming por chips de color de tenant —
+  https://claude.ai/code/artifact/20bbf0a9-751f-4e00-b916-142d6f25bcd5
+  (fuente: scratchpad de la sesión del 2026-07-12; si hay que regenerarlo, el HTML
+  usa las fuentes embebidas en base64 descargadas de Google Fonts).
+- Skills de diseño: plugin `frontend-design` (ya estaba) + skill
+  `web-artifacts-builder` instalada en `~/.claude/skills/` (para mockups
+  multi-componente React cuando hagan falta).
+- Pendiente: OK formal de Enzo/Carla a la dirección v1 antes de implementarla en
+  la app Next (Fase 1).
+
 ## Próximos pasos
 - Arrancar Fase 1 cuando Carla/Enzo lo pidan: motor de cotización real
   (`calculate.ts` con tests), 2 plantillas de industria completas (revestimientos +
