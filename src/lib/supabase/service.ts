@@ -1,11 +1,11 @@
 import "server-only";
 import { createClient } from "@supabase/supabase-js";
 import { z } from "zod";
-import { publicEnv } from "@/lib/env";
+import { publicEnv, supabaseJwt } from "@/lib/env";
 import type { Database } from "@/types/database";
 
 const serviceEnvSchema = z.object({
-  SUPABASE_SERVICE_ROLE_KEY: z.string().min(1),
+  SUPABASE_SERVICE_ROLE_KEY: supabaseJwt("SUPABASE_SERVICE_ROLE_KEY"),
 });
 
 /**
