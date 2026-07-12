@@ -1,0 +1,38 @@
+services:
+  cotizador:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: cotizador-multi-industria:latest
+    restart: unless-stopped
+    env_file:
+      - .env
+    networks:
+      - traefik-public
+    labels:
+      - "traefik.enable=true"
+      # VERIFICAR: nombre de red y certresolver deben coincidir con los
+      # que ya usás para tus otros servicios detrás de este Traefik.
+      - "traefik.docker.network=traefik-public"
+      - "traefik.http.routers.cotizador.rule=Host(`cotizador.sentidocomun.click`)"
+      - "traefik.http.routers.cotizador.entrypoints=websecure"
+      - "traefik.http.routers.cotizador.tls=true"
+      - "traefik.http.routers.cotizador.tls.certresolver=letsencrypt"
+      - "traefik.http.services.cotizador.loadbalancer.server.port=3000"
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://localhost:3000/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+networks:
+  # Red externa de Traefik ya existente: NO se crea acá, solo se referencia.
+  traefik-public:
+    external: true
