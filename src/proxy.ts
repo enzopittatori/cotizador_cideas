@@ -52,5 +52,8 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|api/health).*)"],
+  // Excluye estáticos y TODA /api: las rutas públicas hacen su propio
+  // control (rate limit + service role) y ninguna API usa redirect de
+  // sesión — el gate por rol de las páginas vive en requireRole().
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|api/).*)"],
 };

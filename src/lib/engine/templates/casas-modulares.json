@@ -1,0 +1,71 @@
+{
+  "version": 1,
+  "campo_cantidad": {
+    "etiqueta": "Superficie",
+    "unidad": "m²",
+    "min": 18,
+    "max": 400
+  },
+  "campos": [
+    {
+      "id": "terminacion",
+      "tipo": "select",
+      "etiqueta": "Nivel de terminación",
+      "requerido": true,
+      "opciones": [
+        { "valor": "estandar", "etiqueta": "Estándar" },
+        { "valor": "premium", "etiqueta": "Premium" }
+      ]
+    },
+    {
+      "id": "kit_electrico",
+      "tipo": "booleano",
+      "etiqueta": "Kit eléctrico completo",
+      "requerido": false,
+      "nota_precio": "tablero, cableado y bocas instaladas"
+    },
+    {
+      "id": "flete_incluido",
+      "tipo": "booleano",
+      "etiqueta": "Flete y montaje en terreno",
+      "requerido": false,
+      "nota_precio": "hasta 100 km de fábrica"
+    }
+  ],
+  "reglas_precio": [
+    {
+      "id": "terminacion_premium",
+      "descripcion": "Terminación premium",
+      "tipo": "multiplicador",
+      "campo_id": "terminacion",
+      "cuando": "premium",
+      "valor": 1.18
+    },
+    {
+      "id": "kit_electrico_fijo",
+      "descripcion": "Kit eléctrico completo",
+      "tipo": "monto_fijo",
+      "campo_id": "kit_electrico",
+      "valor": 1850000
+    },
+    {
+      "id": "flete_montaje",
+      "descripcion": "Flete y montaje",
+      "tipo": "monto_fijo",
+      "campo_id": "flete_incluido",
+      "valor": 2600000
+    }
+  ],
+  "textos": {
+    "cliente_ideal": "Parejas y familias que quieren su primera casa o ampliar, con plazos cortos y precio cerrado; les preocupa que la obra tradicional se estire y se vaya de presupuesto.",
+    "beneficios_generales": [
+      "Tu casa lista en semanas, no en años: fabricación en planta con fecha de entrega firmada",
+      "Precio cerrado por contrato: sin sorpresas de obra a mitad de camino"
+    ],
+    "condiciones": "Precios con IVA incluido. Presupuesto válido por 15 días. Entrega según cronograma de fábrica al momento de la seña."
+  },
+  "opciones": {
+    "mostrar_precio": "exacto",
+    "captura_lead_antes_de_resultado": true
+  }
+}

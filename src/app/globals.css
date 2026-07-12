@@ -2,6 +2,115 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Tokens del design system — docs/diseno-ui.md §2.
+   --plano es la única variable que pisa cada tenant (branding). */
 :root {
-  --color-primary: #1d4ed8;
+  --papel: #f7f6f2;
+  --tinta: #10222e;
+  --plano: #17527b;
+  --fosforito: #ffe45c;
+  --grafito: #5d6b72;
+  --linea: #d8dcd4;
+  --hoja-bg: #fdfdfb;
+}
+
+@layer base {
+  body {
+    background: var(--papel);
+    color: var(--tinta);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--plano);
+    outline-offset: 2px;
+  }
+}
+
+@layer components {
+  /* Trazo de fosforito sobre el total — firma visual del producto */
+  .total-fosforito {
+    position: relative;
+    white-space: nowrap;
+  }
+  .total-fosforito::before {
+    content: "";
+    position: absolute;
+    left: -8px;
+    right: -10px;
+    top: 48%;
+    bottom: -6px;
+    background: var(--fosforito);
+    opacity: 0.55;
+    border-radius: 2px;
+    transform: skewX(-6deg) scaleX(0);
+    transform-origin: left center;
+    z-index: -1;
+  }
+  .total-fosforito.marcado::before {
+    animation: marcar 320ms ease-out forwards;
+  }
+  @keyframes marcar {
+    to {
+      transform: skewX(-6deg) scaleX(1);
+    }
+  }
+
+  /* Entrada en cascada de líneas de la hoja */
+  .linea-entra {
+    opacity: 0;
+    transform: translateY(8px);
+    animation: linea-entra 240ms cubic-bezier(0.2, 0, 0, 1) forwards;
+  }
+  @keyframes linea-entra {
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  /* Divisor con ticks de regla (cinta métrica) */
+  .regla-ticks {
+    height: 12px;
+    border-top: 1px solid var(--grafito);
+    background: repeating-linear-gradient(
+      90deg,
+      var(--grafito) 0 1px,
+      transparent 1px 9px
+    );
+    background-size: 100% 6px;
+    background-repeat: no-repeat;
+    opacity: 0.5;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .total-fosforito.marcado::before {
+    animation: none;
+    transform: skewX(-6deg) scaleX(1);
+  }
+  .linea-entra {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Impresión: solo la hoja de presupuesto (modo vendedor) */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  .imprimible,
+  .imprimible * {
+    visibility: visible;
+  }
+  .imprimible {
+    position: absolute;
+    inset: 0;
+    padding: 24px;
+  }
+  .no-imprimir {
+    display: none !important;
+  }
 }

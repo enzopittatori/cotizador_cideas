@@ -5,8 +5,20 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        // Color primario por tenant, seteado vía CSS var desde branding.jsonb
-        primary: "var(--color-primary, #1d4ed8)",
+        papel: "var(--papel)",
+        tinta: "var(--tinta)",
+        plano: "var(--plano)",
+        fosforito: "var(--fosforito)",
+        grafito: "var(--grafito)",
+        linea: "var(--linea)",
+        hoja: "var(--hoja-bg)",
+      },
+      fontFamily: {
+        sans: ["var(--font-archivo)", "system-ui", "sans-serif"],
+        mono: ["var(--font-mono)", "ui-monospace", "monospace"],
+      },
+      boxShadow: {
+        hoja: "0 1px 2px rgba(16, 34, 46, 0.06)",
       },
     },
   },

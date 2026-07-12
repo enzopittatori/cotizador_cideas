@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { archivo, splineSansMono } from "./fonts";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -12,10 +13,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="es">
-      <body className="min-h-screen bg-white text-gray-900 antialiased">
-        {children}
-      </body>
+    <html lang="es" className={`${archivo.variable} ${splineSansMono.variable}`}>
+      <body className="min-h-screen font-sans antialiased">{children}</body>
     </html>
   );
 }

@@ -6,9 +6,58 @@
 > este archivo es el "dónde estamos ahora".
 
 ## Última actualización
-2026-07-12 — **FASE 0 CERRADA Y VALIDADA EN PRODUCCIÓN.** Login real por HTTPS en
-`cotizador.sentidocomun.click` funcionando: usuario superadmin entra y ve el panel
-`/super`. Validado con Playwright contra producción. Próximo paso: Fase 1.
+2026-07-12 — **FASE 1 CONSTRUIDA Y VALIDADA E2E EN LOCAL contra el Supabase real.**
+Falta solo el redeploy en Portainer + validación de Carla/Enzo en producción para
+cerrarla. Diseño v1 aprobado por Enzo e implementado en la app real.
+
+## Fase 1 — qué se construyó (2026-07-12)
+- **Engine** (`src/lib/engine/`): `calculate.ts` puro y determinístico (corre igual
+  en server autoritativo y en cliente como visualización optimista — misma función).
+  Schema v1 extendido: `campo_cantidad` (el número que multiplica el precio base),
+  reglas con `cuando` (matching de opciones de select), `buildInputsSchema()` genera
+  el Zod de validación de inputs desde la config. 14 tests verdes (`npm test`).
+  **Detalle no obvio:** `campo_cantidad` se guarda DENTRO de `opciones` (jsonb) en
+  la DB para no tocar el DDL de la migración 0003; el mapeo vive en
+  `src/lib/supabase/config-map.ts` (rowToConfig/configToColumns).
+- **Plantillas**: `revestimientos` y `casas-modulares` en
+  `src/lib/engine/templates/*.json`, validadas al cargar (server no arranca con
+  plantilla rota).
+- **Modelo producto↔config**: los productos (tabla `cotizador_products`) son las
+  opciones elegibles; la config define cantidad + campos extra (select/booleano) +
+  reglas de precio. Multi-producto = varios ítems por quote.
+- **API pública** (`/api/public/[slug]/calculate` y `/quote`): service role + slug,
+  rate limit en memoria (60/min calc, 12/min quote por IP — suficiente para réplica
+  única; migrar a contador en Postgres si algún día hay más réplicas). `/quote`
+  persiste quote+items+lead, genera texto y arma link wa.me server-side.
+- **IA** (`src/lib/ai/`): PROMPT_VERSION=1, modelo `claude-sonnet-4-6`, caché por
+  hash sha256 (tenant+items+contexto+versión+modelo) en `cotizador_text_cache`
+  (upsert con onConflict tenant_id,hash_inputs), timeout 12s, fallback determinístico
+  — la cotización NUNCA se bloquea por la IA. Sin SDK: fetch directo (menos deps).
+- **UI**: design system implementado (tokens CSS + Archivo/Spline via next/font +
+  tailwind mapeado a vars). Componentes: `HojaViva` (hoja con count-up + fosforito),
+  `FormularioItem` (form dinámico desde config), `CotizadorCliente` (público),
+  `CotizadorVendedor`, `EditorPresupuesto` (dueño del texto vivo: lo que se ve es lo
+  que se imprime y lo que viaja por WhatsApp).
+- **Modo vendedor**: `/cotizar` (form + últimas 8 cotizaciones), `/cotizar/[id]`
+  (hoja imprimible + editor). `texto_editado` nunca pisa `texto_generado` ✓ (verificado
+  en DB). Link wa.me al cliente se genera server-side (action `linkWhatsappCliente`).
+- **Admin** (`/admin`): cliente ideal, WhatsApp del vendedor, color del negocio
+  (branding.color_primario = var --plano), CRUD básico de productos (crear, precio
+  inline, activar/desactivar, beneficios 1-2, imagen por URL).
+- **Decisiones de alcance registradas**: PDF con marca queda para Fase 2 (el plan lo
+  lista ahí; Fase 1 entrega Imprimir con print CSS). Subida de imágenes a Storage
+  (bucket `cotizador-assets`) también Fase 2 — hoy imagen por URL. Import Excel: Fase 2.
+  "Duplicar presupuesto" del vendedor: pendiente menor, hay lista de recientes.
+- **E2E validado en local contra el Supabase REAL** (misma instancia de prod):
+  seed del tenant `demo` (slug `/demo`, captura de leads ON) + 3 productos + usuario
+  de prueba `vendedor-demo@cideas.local` (rol vendedor). Flujo cliente completo:
+  cálculo optimista = server ($626.400 ✓), lead capturado, **texto real generado por
+  Claude** con la estructura §4.4, caché escrito, wa.me correcto. Flujo vendedor:
+  login → redirect por rol → quote $256.800 → editor → texto_editado guardado aparte.
+  Vendedor NO puede entrar a /admin (redirect) ✓.
+- **OJO producción:** el stack de Portainer necesita la env var **ANTHROPIC_API_KEY**
+  agregada (5ta variable) o los textos salen por fallback template. El tenant demo y
+  el usuario de prueba YA existen en la instancia (el e2e local corrió contra ella).
 
 ## Lección clave de deploy (leer antes de tocar env vars)
 Las variables `NEXT_PUBLIC_*` quedan **horneadas en la imagen durante el build de
@@ -210,10 +259,13 @@ Qué existe hoy:
   la app Next (Fase 1).
 
 ## Próximos pasos
-- Arrancar Fase 1 cuando Carla/Enzo lo pidan: motor de cotización real
-  (`calculate.ts` con tests), 2 plantillas de industria completas (revestimientos +
-  casas modulares), integración con Claude API para el texto del presupuesto,
-  multi-producto, modo cliente público funcional.
+- **Cerrar Fase 1:** redeploy del stack en Portainer (re-pull) + agregar env var
+  `ANTHROPIC_API_KEY` + validar `https://cotizador.sentidocomun.click/demo` de punta
+  a punta (checklist pasado por chat el 2026-07-12). El criterio de salida del plan
+  pide un cliente real (piloto DROP arq. modular) usándolo — coordinar con Carla.
+- Fase 2 después del cierre: panel superadmin (tenants + plantillas), onboarding 7
+  pasos, import Excel, PDF con marca, subida de imágenes a `cotizador-assets`,
+  emails, demos públicas.
 - Anotado para Fase 2 (pedido de Enzo del 2026-07-12): en el panel superadmin, la
   gestión de miembros debería mostrar nombre/email legibles (como la tabla
   `crm_profiles` de su CRM), no solo `user_id` — hoy crear un membership requiere SQL

@@ -1,0 +1,57 @@
+{
+  "version": 1,
+  "campo_cantidad": {
+    "etiqueta": "Superficie a cubrir",
+    "unidad": "m²",
+    "min": 1,
+    "max": 10000
+  },
+  "campos": [
+    {
+      "id": "ubicacion",
+      "tipo": "select",
+      "etiqueta": "Ubicación",
+      "requerido": true,
+      "opciones": [
+        { "valor": "interior", "etiqueta": "Interior" },
+        { "valor": "exterior", "etiqueta": "Exterior" }
+      ]
+    },
+    {
+      "id": "colocacion",
+      "tipo": "booleano",
+      "etiqueta": "Colocación incluida",
+      "requerido": false,
+      "nota_precio": "instalación por nuestro equipo"
+    }
+  ],
+  "reglas_precio": [
+    {
+      "id": "recargo_exterior",
+      "descripcion": "Tratamiento para exterior",
+      "tipo": "multiplicador",
+      "campo_id": "ubicacion",
+      "cuando": "exterior",
+      "valor": 1.12
+    },
+    {
+      "id": "colocacion_m2",
+      "descripcion": "Colocación",
+      "tipo": "por_unidad",
+      "campo_id": "colocacion",
+      "valor": 7200
+    }
+  ],
+  "textos": {
+    "cliente_ideal": "Dueños de casa que quieren renovar un ambiente sin obra pesada; valoran que quede bien terminado y que no se llene todo de polvo.",
+    "beneficios_generales": [
+      "Transformás el ambiente en un día, sin escombros ni obra húmeda",
+      "El material llega listo para colocar, con guía de instalación"
+    ],
+    "condiciones": "Precios con IVA incluido. Presupuesto válido por 7 días. Colocación sujeta a visita técnica."
+  },
+  "opciones": {
+    "mostrar_precio": "exacto",
+    "captura_lead_antes_de_resultado": false
+  }
+}
