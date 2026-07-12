@@ -1,38 +1,34 @@
+version: "3.7"
+
 services:
   cotizador:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    image: cotizador-multi-industria:latest
-    restart: unless-stopped
-    env_file:
-      - .env
+    image: ghcr.io/enzopittatori/cotizador_cideas:latest
     networks:
-      - traefik-public
-    labels:
-      - "traefik.enable=true"
-      # VERIFICAR: nombre de red y certresolver deben coincidir con los
-      # que ya usás para tus otros servicios detrás de este Traefik.
-      - "traefik.docker.network=traefik-public"
-      - "traefik.http.routers.cotizador.rule=Host(`cotizador.sentidocomun.click`)"
-      - "traefik.http.routers.cotizador.entrypoints=websecure"
-      - "traefik.http.routers.cotizador.tls=true"
-      - "traefik.http.routers.cotizador.tls.certresolver=letsencrypt"
-      - "traefik.http.services.cotizador.loadbalancer.server.port=3000"
-    healthcheck:
-      test:
-        [
-          "CMD",
-          "node",
-          "-e",
-          "fetch('http://localhost:3000/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
-        ]
-      interval: 30s
-      timeout: 5s
-      retries: 3
-      start_period: 10s
+      - VpsNet
+    environment:
+      BASE_URL: ${BASE_URL}
+      NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL}
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${NEXT_PUBLIC_SUPABASE_ANON_KEY}
+      SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY}
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+      restart_policy:
+        condition: any
+      labels:
+        - "traefik.enable=true"
+        - "traefik.docker.network=VpsNet"
+        - "traefik.http.routers.cotizador.rule=Host(`cotizador.sentidocomun.click`)"
+        - "traefik.http.routers.cotizador.entrypoints=websecure"
+        - "traefik.http.routers.cotizador.tls=true"
+        - "traefik.http.routers.cotizador.tls.certresolver=letsencryptresolver"
+        - "traefik.http.routers.cotizador.service=cotizador"
+        - "traefik.http.services.cotizador.loadbalancer.server.port=3000"
+        - "traefik.http.services.cotizador.loadbalancer.passHostHeader=true"
 
 networks:
-  # Red externa de Traefik ya existente: NO se crea acá, solo se referencia.
-  traefik-public:
+  VpsNet:
     external: true

@@ -62,17 +62,37 @@ Qué existe hoy:
   de la config de industria (campos/reglas_precio/textos/opciones). A propósito NO
   incluye `calculate.ts` todavía: la semántica de evaluación de `reglas_precio` es
   "Motor de cotización" y esa es tarea explícita de Fase 1, no de Fase 0.
-- `Dockerfile` (multi-stage, `output: standalone`) + `docker-compose.yml` con labels de
-  Traefik para `cotizador.sentidocomun.click`. **El nombre de red (`traefik-public`) y
-  el certresolver (`letsencrypt`) son placeholders** — hay que verificarlos contra lo
-  que Carla ya usa en Portainer para sus otros servicios antes del deploy real.
-- Validado localmente: `npm run typecheck` limpio, `npm run build` limpio (Turbopack,
-  sin warnings), y smoke test real en navegador (Playwright MCP) contra `npm run dev`:
-  `/api/health` responde `{status:"ok"}`, `/` y `/cotizar` sin sesión redirigen a
-  `/login`, y el flujo de credenciales inválidas muestra el mensaje de error
-  correctamente. Todo esto contra un Supabase **dummy** (URL falsa) — falta la
-  validación real contra el Supabase self-hosted de Carla y contra Docker/Traefik, que
-  son las dos cosas que ella tiene que confirmar en su servidor.
+- **Deploy: Docker Swarm vía Portainer, no `docker compose up` simple.** Carla compartió
+  el stack real de su otro proyecto (`crm-cideas`) y el server corre Swarm (todos los
+  stacks en su Portainer son "Type: Swarm"). Esto cambió el diseño del deploy:
+  - `docker-compose.yml` reescrito al patrón real: red externa `VpsNet` (no
+    `traefik-public`), certresolver `letsencryptresolver` (no `letsencrypt`), bloque
+    `deploy:` con `mode: replicated`, `placement.constraints: node.role == manager`,
+    labels de Traefik con `.service=cotizador` explícito y `passHostHeader=true` —
+    calcado del stack `crm` que ya funciona en su Portainer.
+  - Swarm **no soporta `build:`** en un stack file. Por eso la imagen se compila aparte
+    y se publica en GHCR (`ghcr.io/enzopittatori/cotizador_cideas`), igual que `crm`
+    (`ghcr.io/enzopittatori/crm-cideas`). El workflow
+    `.github/workflows/docker-publish.yml` compila y pushea a GHCR automáticamente en
+    cada push a `main` — Carla no necesita compilar nada a mano en el servidor.
+  - Swarm tampoco soporta `env_file:` en el stack file. Las 4 variables
+    (`BASE_URL`, `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`,
+    `SUPABASE_SERVICE_ROLE_KEY`) están como `${VAR}` en `environment:`, y Portainer las
+    sustituye desde el panel "Environment variables" al crear/editar el stack.
+  - Detalle importante de Next.js: `NEXT_PUBLIC_SUPABASE_URL` y
+    `NEXT_PUBLIC_SUPABASE_ANON_KEY` quedan "horneadas" en el bundle del cliente durante
+    el `next build`, así que además de estar en el `environment:` del stack (para el
+    proceso Node en runtime) tienen que existir como **build args** en el momento de
+    compilar la imagen. Por eso el workflow de GitHub Actions las pasa como
+    `build-args` leyendo `secrets.NEXT_PUBLIC_SUPABASE_URL` / `..._ANON_KEY` del repo
+    (no son secretas en el sentido estricto — la anon key está pensada para ser
+    pública — pero usar Secrets de GitHub es la forma más simple de pasarlas sin que
+    queden hardcodeadas en el workflow).
+- Validado: `npm run typecheck` limpio, `npm run build` limpio, smoke test en navegador
+  (Playwright MCP) contra `npm run dev`, y build + run real de la imagen Docker
+  (`docker build` + `docker run` local, `/api/health` respondió `{"status":"ok"}` desde
+  dentro del contenedor). Todo esto contra un Supabase **dummy** — falta la validación
+  real contra el Supabase self-hosted de Carla y contra Traefik en su servidor.
 
 ## Herramientas instaladas (2026-07-12)
 - **Playwright MCP** (`@playwright/mcp`) — registrado en `.mcp.json` del proyecto
@@ -102,8 +122,13 @@ Qué existe hoy:
 - Disciplina de fases: no adelantar trabajo de fases futuras sin pedido explícito.
 
 ## Próximos pasos
-- Carla corre el checklist de validación en su servidor (migraciones, `.env`, Docker
-  Compose, `promote_superadmin.sql`) y confirma que carga por HTTPS.
+- **Pendiente de Carla:** decirme la URL de conexión (y de ser posible las keys) de su
+  Supabase self-hosted — tiene un stack `supabase` corriendo en el mismo Portainer, hay
+  que ver cómo lo expone (subdominio propio vía Traefik, o red interna de Swarm). Sin
+  este dato no puede completar el `.env`/las env vars del stack.
+- Carla corre el checklist de validación en su servidor (migraciones, secrets de GitHub,
+  variables de entorno del stack en Portainer, `promote_superadmin.sql`) y confirma que
+  carga por HTTPS.
 - Recién ahí se cierra Fase 0 y arranca Fase 1: motor de cotización real
   (`calculate.ts`), 2 plantillas de industria completas (revestimientos + casas
   modulares), integración con Claude API para el texto del presupuesto, multi-producto,
