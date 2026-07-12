@@ -121,14 +121,40 @@ Qué existe hoy:
 - Config de industria versionada y validada con Zod.
 - Disciplina de fases: no adelantar trabajo de fases futuras sin pedido explícito.
 
+## Infraestructura real del servidor (compartida el 2026-07-12)
+- **Docker Swarm + Portainer CE 2.33.3** en un VPS, todos los stacks "Type: Swarm".
+  Stacks existentes: cazaofertas, chatwoot, crm-cideas, evolution, minio, n8n, pgvector,
+  planovivo, portainer, postgres, supabase, traefik.
+- **Supabase self-hosted (setup "OrionDesign/SetupOrion")** como stack Swarm:
+  - URL pública (Kong via Traefik): `https://sssupabase.sentidocomun.click` — esto es
+    `NEXT_PUBLIC_SUPABASE_URL`.
+  - Studio protegido con basic auth de Kong (usuario `admin` + password en el env
+    `DASHBOARD_PASSWORD` del servicio kong del stack supabase).
+  - La anon key y la service key están en el propio stack (`SUPABASE_ANON_KEY`,
+    `SUPABASE_SERVICE_KEY` en los servicios studio/kong). NO están guardadas en este
+    repo ni en este archivo a propósito — se copian de ahí cuando hagan falta.
+  - El Postgres (`db`) NO está expuesto públicamente; solo vive en la red `VpsNet`.
+    Por eso las migraciones se corren desde el SQL Editor de Supabase Studio, no con
+    `psql` desde afuera.
+  - GoTrue (auth): `GOTRUE_SITE_URL` apunta a `crm.sentidocomun.click` y la
+    `GOTRUE_URI_ALLOW_LIST` solo lista URLs del CRM y de planovivo. Para el login por
+    password de Fase 0 no bloquea nada, pero **cuando usemos flujos de email (reset de
+    contraseña, invitaciones) habrá que agregar `https://cotizador.sentidocomun.click`
+    a esa allow list** en el stack supabase.
+  - JWT_EXP=31536000 (sesiones de 1 año). Storage usa MinIO S3
+    (`ss3.sentidocomun.click`) como backend — relevante cuando creemos el bucket
+    `cotizador-assets` en Fase 1+.
+- El stack `crm-cideas` (referencia de patrón): imagen de GHCR, red `VpsNet`,
+  certresolver `letsencryptresolver` — nuestro `docker-compose.yml` está calcado de ahí.
+
 ## Próximos pasos
-- **Pendiente de Carla:** decirme la URL de conexión (y de ser posible las keys) de su
-  Supabase self-hosted — tiene un stack `supabase` corriendo en el mismo Portainer, hay
-  que ver cómo lo expone (subdominio propio vía Traefik, o red interna de Swarm). Sin
-  este dato no puede completar el `.env`/las env vars del stack.
-- Carla corre el checklist de validación en su servidor (migraciones, secrets de GitHub,
-  variables de entorno del stack en Portainer, `promote_superadmin.sql`) y confirma que
-  carga por HTTPS.
+- El primer run del workflow de GitHub Actions **falló como se esperaba** (secrets
+  `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY` no configurados aún en
+  el repo). Checklist pendiente del lado de Enzo/Carla (pasado por chat el 2026-07-12):
+  configurar esos 2 secrets, re-correr el workflow, hacer visible/pulleable la imagen
+  GHCR desde el server, correr migraciones 0001..0009 en el SQL Editor de Studio,
+  crear usuario + `promote_superadmin.sql`, DNS de `cotizador.sentidocomun.click`,
+  crear el stack en Portainer con las 4 env vars, y validar por HTTPS.
 - Recién ahí se cierra Fase 0 y arranca Fase 1: motor de cotización real
   (`calculate.ts`), 2 plantillas de industria completas (revestimientos + casas
   modulares), integración con Claude API para el texto del presupuesto, multi-producto,
