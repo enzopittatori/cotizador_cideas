@@ -15,10 +15,14 @@ export async function getCurrentUser() {
   return user;
 }
 
-/**
- * Devuelve el membership del usuario logueado. Si tiene varias filas
- * (ej. superadmin + alguna asignación de tenant), prioriza superadmin.
- */
+// Orden de prioridad cuando un usuario tiene más de una fila en
+// cotizador_memberships (ej. el dueño de un negocio chico que además
+// cotiza como vendedor): superadmin > admin > vendedor. Sin este orden
+// explícito, qué panel se elige dependía del orden de retorno de la
+// query, que Postgres no garantiza sin ORDER BY.
+const PRIORIDAD_ROL: CotizadorRol[] = ["superadmin", "admin", "vendedor"];
+
+/** Devuelve el membership del usuario logueado, según PRIORIDAD_ROL. */
 export async function getCurrentMembership(): Promise<Membership | null> {
   const supabase = await createSupabaseServerClient();
   const {
@@ -34,8 +38,10 @@ export async function getCurrentMembership(): Promise<Membership | null> {
 
   if (!data || data.length === 0) return null;
 
-  const superadmin = data.find((m) => m.rol === "superadmin");
-  const membership = superadmin ?? data[0];
+  const membership =
+    PRIORIDAD_ROL.map((rol) => data.find((m) => m.rol === rol)).find(
+      (m) => m !== undefined
+    ) ?? data[0];
 
   if (!membership) return null;
 
