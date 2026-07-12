@@ -6,7 +6,20 @@
 > este archivo es el "dónde estamos ahora".
 
 ## Última actualización
-2026-07-12 — Enzo (asistente) instaló tooling de desarrollo para el proyecto.
+2026-07-12 — Repo conectado a GitHub y primer push hecho.
+
+## Control de versiones
+- Repo remoto: https://github.com/enzopittatori/cotizador_cideas (branch `main`).
+- Git local inicializado el 2026-07-12; primer commit con CLAUDE.md, plan de producto,
+  `.mcp.json`, `.gitignore` y este `MEMORY.md`.
+- `.gitignore` excluye `.env`, `.env.*` (permite `.env.example`), `node_modules/`,
+  `.next/`, `graphify-out/` y artefactos de build/editor. **Regla dura: `.env` nunca se
+  sube a GitHub** — verificar `git status` antes de cualquier commit que toque variables
+  de entorno o credenciales.
+- El Personal Access Token de GitHub usado para el push inicial NO quedó guardado en
+  `.git/config` (se pasó solo en la URL de ese push puntual). Para próximos pushes desde
+  esta máquina, configurar autenticación persistente (credential manager de Windows, SSH
+  key, o `gh auth login`) en vez de reutilizar el token en texto plano.
 
 ## Fase actual
 **Fase 0 — arranque.** Todavía no hay código de la app (`src/`, `supabase/migrations/` no
@@ -15,8 +28,6 @@ existen aún). Solo están en el repo:
 - `plan-cotizador-multi-industria.md` — plan de producto completo (nota: `CLAUDE.md` lo
   referencia como `docs/plan-cotizador-multi-industria.md`, pero hoy vive en la raíz del
   repo — revisar si hay que moverlo a `docs/` cuando se arme la estructura real).
-
-No se ha inicializado como repositorio git todavía.
 
 ## Herramientas instaladas (2026-07-12)
 - **Playwright MCP** (`@playwright/mcp`) — registrado en `.mcp.json` del proyecto
@@ -48,6 +59,5 @@ No se ha inicializado como repositorio git todavía.
 ## Próximos pasos sugeridos
 - Confirmar con Carla si arrancamos Fase 0 (scaffolding Next.js + Supabase + estructura
   de carpetas de `CLAUDE.md`) o si hay algo previo pendiente.
-- Si se arranca código, decidir si se inicializa git ahora o más adelante.
 - Revisar la discrepancia de ubicación de `plan-cotizador-multi-industria.md` (raíz vs
   `docs/`) antes de que el plan quede desincronizado con las referencias de `CLAUDE.md`.
