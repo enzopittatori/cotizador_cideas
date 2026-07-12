@@ -23,6 +23,12 @@ export async function login(formData: FormData) {
   });
 
   if (error) {
+    console.error("[login] signInWithPassword falló:", {
+      status: error.status,
+      code: error.code,
+      message: error.message,
+      supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL,
+    });
     redirect("/login?error=invalid");
   }
 
