@@ -57,7 +57,21 @@ cerrarla. Diseño v1 aprobado por Enzo e implementado en la app real.
   Vendedor NO puede entrar a /admin (redirect) ✓.
 - **OJO producción:** el stack de Portainer necesita la env var **ANTHROPIC_API_KEY**
   agregada (5ta variable) o los textos salen por fallback template. El tenant demo y
-  el usuario de prueba YA existen en la instancia (el e2e local corrió contra ella).
+  los usuarios de prueba YA existen en la instancia (el e2e local corrió contra ella).
+- **Usuarios de prueba** (tenant `demo`, slug público `/demo`):
+  - `vendedor-demo@cideas.local` / `DemoVendedor2026!` — rol vendedor. Accede a
+    `/cotizar`, NO a `/admin`.
+  - `admin-demo@cideas.local` / `DemoAdmin2026!` — rol admin. Accede a `/admin` y
+    `/cotizar`. Creado el 2026-07-12 porque el vendedor-demo no alcanza para probar
+    el panel del negocio.
+  - La cuenta superadmin de Carla/Enzo (`cideas.consulting@gmail.com`) no tiene
+    `tenant_id` (es superadmin global) — por diseño no puede entrar a `/admin` de
+    ningún negocio hasta que exista el panel superadmin (Fase 2) para asignarle uno,
+    o se le agregue a mano una segunda fila de membership con rol admin/vendedor.
+  - Fix aplicado (commit `95f4e27`): `getCurrentMembership()` ahora prioriza
+    explícitamente superadmin > admin > vendedor si un usuario tiene varias filas en
+    `cotizador_memberships` (antes dependía del orden de retorno de Postgres, no
+    garantizado sin ORDER BY — caso real: dueño de negocio chico que también cotiza).
 
 ## Lección clave de deploy (leer antes de tocar env vars)
 Las variables `NEXT_PUBLIC_*` quedan **horneadas en la imagen durante el build de
