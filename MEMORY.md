@@ -6,7 +6,27 @@
 > este archivo es el "dónde estamos ahora".
 
 ## Última actualización
-2026-07-12 — Fase 0 construida (código completo) y pendiente de validación de Carla en su servidor.
+2026-07-12 — **FASE 0 CERRADA Y VALIDADA EN PRODUCCIÓN.** Login real por HTTPS en
+`cotizador.sentidocomun.click` funcionando: usuario superadmin entra y ve el panel
+`/super`. Validado con Playwright contra producción. Próximo paso: Fase 1.
+
+## Lección clave de deploy (leer antes de tocar env vars)
+Las variables `NEXT_PUBLIC_*` quedan **horneadas en la imagen durante el build de
+GitHub Actions** (desde los GitHub Secrets del repo, pasadas como build-args). Los
+valores que se pongan en Portainer para esas variables **NO tienen ningún efecto** —
+verificado empíricamente (se apuntó la URL a un listener local vía env y la app la
+ignoró). Solo `SUPABASE_SERVICE_ROLE_KEY` y `BASE_URL` (sin prefijo NEXT_PUBLIC_) se
+leen en runtime desde el env del stack.
+
+**Bug que costó horas:** el secret de GitHub `NEXT_PUBLIC_SUPABASE_ANON_KEY` se había
+cargado con el prefijo `SUPABASE_ANON_KEY=` pegado adelante del token (se copió la
+línea completa del stack de supabase). Kong respondía `401 Invalid authentication
+credentials` (ese mensaje es de Kong key-auth, NO de GoTrue — GoTrue con password mala
+da `400 Invalid login credentials`). Diagnóstico definitivo: interceptor de fetch
+(`NODE_OPTIONS=--require hook.js`) sobre la imagen real corriendo local mostró el
+header `apikey` con el prefijo. Desde entonces `src/lib/env.ts` valida en build time
+que las keys tengan formato JWT (`^eyJ` + 3 partes, con trim) — un secret mal pegado
+ahora rompe el build con mensaje claro en vez de fallar mudo en producción.
 
 ## Control de versiones
 - Repo remoto: https://github.com/enzopittatori/cotizador_cideas (branch `main`).
@@ -22,11 +42,16 @@
   key, o `gh auth login`) en vez de reutilizar el token en texto plano.
 
 ## Fase actual
-**Fase 0 — construida en código, PENDIENTE de validación de Carla en su servidor.**
-No se marca como cerrada hasta que ella confirme que corre por HTTPS en
-`cotizador.sentidocomun.click` (criterio de salida del plan, sección 6). Ver el
-checklist paso a paso que le pasé en el chat del 2026-07-12 para ese último tramo
-(migraciones + variables de entorno + deploy).
+**Fase 0 — CERRADA (2026-07-12).** Criterio de salida cumplido y verificado en el
+servidor real: login por HTTPS → dashboard `/super` vacío → todo corriendo en la
+infra de Carla/Enzo (Swarm + Traefik + Supabase self-hosted). Migraciones 0001..0009
+aplicadas en el Supabase de producción; usuario `cideas.consulting@gmail.com` es
+superadmin (única fila en `cotizador_memberships`).
+
+**Siguiente: Fase 1** (aún NO arrancada — esperar pedido explícito): motor de
+cotización (`calculate.ts` + tests), 2 plantillas de industria (revestimientos +
+casas modulares), formulario dinámico, multi-producto, texto de presupuesto con
+Claude API + caché, modo cliente público `[slug]`, modo vendedor, panel admin básico.
 
 Qué existe hoy:
 - `docs/plan-cotizador-multi-industria.md` — ya movido a `docs/` (coincide con lo que
@@ -147,18 +172,33 @@ Qué existe hoy:
 - El stack `crm-cideas` (referencia de patrón): imagen de GHCR, red `VpsNet`,
   certresolver `letsencryptresolver` — nuestro `docker-compose.yml` está calcado de ahí.
 
+## Estado del deploy (todo hecho, referencia operativa)
+- GitHub Secrets del repo: `NEXT_PUBLIC_SUPABASE_URL` y `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+  configurados y correctos (el build valida su formato desde el commit `71b1131`).
+- Imagen `ghcr.io/enzopittatori/cotizador_cideas` es **pública** (decisión consciente:
+  no contiene secretos, la anon key horneada es pública por diseño; la service key
+  solo entra por env en runtime). Si algún día se vuelve privada, configurar registry
+  auth en Portainer.
+- Stack `cotizador` en Portainer: 4 env vars cargadas (las 2 NEXT_PUBLIC_ ahí son
+  decorativas — ver "Lección clave" arriba — pero se dejan como documentación).
+- DNS: registro A `cotizador.sentidocomun.click` → 38.242.221.63 (misma IP que crm).
+- Flujo de deploy de cada cambio: push a `main` → GitHub Actions buildea y publica a
+  GHCR (~2-3 min) → Portainer → Stacks → cotizador → Update the stack con
+  "Re-pull image and redeploy" → ~30 seg.
+- Pendientes de seguridad sugeridos a Enzo (no bloqueantes): rotar el PAT de GitHub
+  compartido por chat, rotar la app password de Gmail del stack supabase, y agregar
+  `https://cotizador.sentidocomun.click` a `GOTRUE_URI_ALLOW_LIST` cuando usemos
+  flujos de email en fases futuras.
+
 ## Próximos pasos
-- El primer run del workflow de GitHub Actions **falló como se esperaba** (secrets
-  `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY` no configurados aún en
-  el repo). Checklist pendiente del lado de Enzo/Carla (pasado por chat el 2026-07-12):
-  configurar esos 2 secrets, re-correr el workflow, hacer visible/pulleable la imagen
-  GHCR desde el server, correr migraciones 0001..0009 en el SQL Editor de Studio,
-  crear usuario + `promote_superadmin.sql`, DNS de `cotizador.sentidocomun.click`,
-  crear el stack en Portainer con las 4 env vars, y validar por HTTPS.
-- Recién ahí se cierra Fase 0 y arranca Fase 1: motor de cotización real
-  (`calculate.ts`), 2 plantillas de industria completas (revestimientos + casas
-  modulares), integración con Claude API para el texto del presupuesto, multi-producto,
-  modo cliente público funcional.
+- Arrancar Fase 1 cuando Carla/Enzo lo pidan: motor de cotización real
+  (`calculate.ts` con tests), 2 plantillas de industria completas (revestimientos +
+  casas modulares), integración con Claude API para el texto del presupuesto,
+  multi-producto, modo cliente público funcional.
+- Anotado para Fase 2 (pedido de Enzo del 2026-07-12): en el panel superadmin, la
+  gestión de miembros debería mostrar nombre/email legibles (como la tabla
+  `crm_profiles` de su CRM), no solo `user_id` — hoy crear un membership requiere SQL
+  a mano.
 - Pendiente menor: `npm audit` marca 2 vulnerabilidades moderadas de `postcss` (XSS en
   stringify), pero están en una copia de `postcss` empaquetada *dentro* de
   `node_modules/next` (herramienta interna de build de Next, no nuestro `postcss` de
